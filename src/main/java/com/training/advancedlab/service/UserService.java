@@ -36,7 +36,7 @@ public class UserService {
         User user = convertToEntity(userDto);
         User savedUser = userRepository.save(user);
 
-        return new ResponseEntity<>("ID ASSIGNED TO THE USER: " + savedUser.getId(), HttpStatus.CREATED);
+            return new ResponseEntity<>("ID ASSIGNED TO THE USER: " + savedUser.getId(), HttpStatus.CREATED);
     }
 
     public ResponseEntity<String> updateUser(Long id, @RequestBody UserDto userDto) {

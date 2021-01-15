@@ -3,7 +3,7 @@ package com.training.advancedlab.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.training.advancedlab.dto.UserDto;
 import com.training.advancedlab.service.UserService;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(UserController.class)
-class UserControllerTest {
+public class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
