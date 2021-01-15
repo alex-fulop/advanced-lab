@@ -11,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -44,39 +43,66 @@ public class UserServiceTest {
         List<UserDto> dtos = DtoEntityConverter.convertToDto(users);
         ResponseEntity<List<UserDto>> expectedResponse = new ResponseEntity<>(dtos, HttpStatus.OK);
         ResponseEntity<List<UserDto>> actualResponse = service.getUsers();
-        assertEquals(actualResponse.getStatusCode(), HttpStatus.OK);
-        assertEquals(objectMapper.writeValueAsString(expectedResponse), objectMapper.writeValueAsString(actualResponse));
+        assertEquals(actualResponse.getStatusCode(), expectedResponse.getStatusCode());
+        assertEquals(objectMapper.writeValueAsString(expectedResponse.getBody()), objectMapper.writeValueAsString(actualResponse.getBody()));
     }
 
     @Test
     public void shouldGetSpecificUsers() throws JsonProcessingException {
-        User user = new User();
-        user.setId(1L);
-        user.setBio("bio");
-        user.setName("name");
+        User user = getUser();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         UserDto userDto = DtoEntityConverter.convertToDto(user);
         ResponseEntity<UserDto> expectedResponse = new ResponseEntity<>(userDto, HttpStatus.OK);
         ResponseEntity<UserDto> actualResponse = service.getUserById(1L);
-        assertEquals(actualResponse.getStatusCode(), HttpStatus.OK);
-        assertEquals(objectMapper.writeValueAsString(expectedResponse), objectMapper.writeValueAsString(actualResponse));
+        assertEquals(actualResponse.getStatusCode(), expectedResponse.getStatusCode());
+        assertEquals(objectMapper.writeValueAsString(expectedResponse.getBody()), objectMapper.writeValueAsString(actualResponse.getBody()));
     }
 
     @Test
     public void shouldCreateUser() throws JsonProcessingException {
+        User user = getUser();
+
+        UserDto userDto = DtoEntityConverter.convertToDto(user);
+        ResponseEntity<String> expectedResponse = new ResponseEntity<>("NEW USER CREATE SUCCESSFULLY", HttpStatus.CREATED);
+        ResponseEntity<String> actualResponse = service.createUser(userDto);
+        assertEquals(actualResponse.getStatusCode(), expectedResponse.getStatusCode());
+        assertEquals(objectMapper.writeValueAsString(expectedResponse.getBody()), objectMapper.writeValueAsString(actualResponse.getBody()));
+    }
+
+    @Test
+    public void shouldUpdateUser() throws JsonProcessingException {
+        User user = getUser();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        UserDto userDto = DtoEntityConverter.convertToDto(user);
+        ResponseEntity<String> expectedResponse = new ResponseEntity<>("USER UPDATED SUCCESSFULLY", HttpStatus.OK);
+        ResponseEntity<String> actualResponse = service.updateUser(1L, userDto);
+        assertEquals(actualResponse.getStatusCode(), expectedResponse.getStatusCode());
+        assertEquals(objectMapper.writeValueAsString(expectedResponse.getBody()), objectMapper.writeValueAsString(actualResponse.getBody()));
+    }
+
+    @Test
+    public void shouldDeleteUser() throws JsonProcessingException {
+        User user = getUser();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        ResponseEntity<String> expectedResponse = new ResponseEntity<>("USER DELETED SUCCESSFULLY", HttpStatus.ACCEPTED);
+        ResponseEntity<String> actualResponse = service.deleteUser(1L);
+        assertEquals(actualResponse.getStatusCode(), expectedResponse.getStatusCode());
+        assertEquals(objectMapper.writeValueAsString(expectedResponse.getBody()), objectMapper.writeValueAsString(actualResponse.getBody()));
+    }
+
+    private User getUser() {
         User user = new User();
         user.setId(1L);
         user.setBio("bio");
         user.setName("name");
-
-        when(userRepository.save(user)).thenReturn(user);
-
-        UserDto userDto = DtoEntityConverter.convertToDto(user);
-        ResponseEntity<String> expectedResponse = new ResponseEntity<>("ID ASSIGNED TO THE USER: 1", HttpStatus.CREATED);
-        ResponseEntity<String> actualResponse = service.createUser(userDto);
-        assertEquals(actualResponse.getStatusCode(), HttpStatus.CREATED);
-        assertEquals(objectMapper.writeValueAsString(expectedResponse), objectMapper.writeValueAsString(actualResponse));
+        return user;
     }
+
 
 }

@@ -1,8 +1,8 @@
 package com.training.advancedlab.service;
 
-import com.training.advancedlab.exception.UserNotFoundException;
 import com.training.advancedlab.dto.UserDto;
 import com.training.advancedlab.entity.User;
+import com.training.advancedlab.exception.UserNotFoundException;
 import com.training.advancedlab.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+
 import java.util.List;
 
 import static com.training.advancedlab.utils.DtoEntityConverter.convertToDto;
@@ -36,14 +37,14 @@ public class UserService {
         User user = convertToEntity(userDto);
         User savedUser = userRepository.save(user);
 
-            return new ResponseEntity<>("ID ASSIGNED TO THE USER: " + savedUser.getId(), HttpStatus.CREATED);
+        return new ResponseEntity<>("NEW USER CREATED SUCCESSFULLY", HttpStatus.CREATED);
     }
 
     public ResponseEntity<String> updateUser(Long id, @RequestBody UserDto userDto) {
         userRepository.findById(id)
                 .map(userEntity -> updateOrCreateUser(userDto, userEntity)).orElseGet(() -> {
-                    User userEntity = new User();
-                    return updateOrCreateUser(userDto, userEntity);
+            User userEntity = new User();
+            return updateOrCreateUser(userDto, userEntity);
         });
         return new ResponseEntity<>("USER UPDATED SUCCESSFULLY", HttpStatus.OK);
     }
