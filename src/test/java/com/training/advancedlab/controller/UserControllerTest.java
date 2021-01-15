@@ -1,18 +1,18 @@
 package com.training.advancedlab.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.training.advancedlab.dto.UserDto;
 import com.training.advancedlab.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -21,36 +21,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes = {ObjectMapper.class})
+@WebMvcTest(UserController.class)
 class UserControllerTest {
-
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
     private MockMvc mockMvc;
     @MockBean
     private UserService userService;
 
-    @BeforeEach
-    private void setup() {
+    @Test
+    public void shouldNotAllowAccessToUnauthorizedUsers() throws Exception {
+        mockMvc.perform(get("/user/")).andExpect(status().isUnauthorized());
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void shouldReturnAListOfAllTheUsers() throws Exception {
         List<UserDto> users = new ArrayList<>();
-        users.add(new UserDto(1L, "Dan", "Friend"));
-        users.add(new UserDto(2L, "Claude", "Video Game Character"));
-        users.add(new UserDto(3L, "Elon", "CEO of Tesla"));
+        users.add(new UserDto("Dan", "Friend"));
+        users.add(new UserDto("Claude", "Video Game Character"));
+        users.add(new UserDto("Elon", "CEO of Tesla"));
+        ResponseEntity<List<UserDto>> returnedResponse = new ResponseEntity<>(users, HttpStatus.OK);
+        when(userService.getUsers()).thenReturn(returnedResponse);
 
-        when(userService.getUsers()).thenReturn(users);
-
-        String url = "/user/list";
+        String url = "/user/";
         MvcResult mvcResult = mockMvc.perform(get(url))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -58,20 +60,84 @@ class UserControllerTest {
         String actualJsonResponse = mvcResult.getResponse().getContentAsString();
         String expectedJsonResponse = objectMapper.writeValueAsString(users);
 
+        MockHttpServletResponse response = mvcResult.getResponse();
+        assertEquals(HttpStatus.OK.value(), response.getStatus());
         assertThat(actualJsonResponse).isEqualToIgnoringWhitespace(expectedJsonResponse);
     }
 
     @Test
-    void shouldFindTheUserAfterCreatingIt() throws Exception {
-        UserDto newUser = new UserDto(4L, "Frank", "Too OP");
+    @WithMockUser(roles = "ADMIN")
+    void shouldFindExistingUser() throws Exception {
+        UserDto newUser = new UserDto();
+        newUser.setName("Benny");
+        newUser.setBio("interesting kid");
+        newUser.setId(1L);
+        ResponseEntity<UserDto> returnedResponse = new ResponseEntity<>(newUser, HttpStatus.OK);
 
-        when(userService.createUser(newUser)).thenReturn(String.valueOf(newUser.getId()));
+        when(userService.getUserById(1L)).thenReturn(returnedResponse);
 
-        String createUrl = "/user/create";
-        mockMvc.perform(post(createUrl)
+        String createUrl = "/user/1";
+        MvcResult mvcResult = mockMvc.perform(get(createUrl))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        MockHttpServletResponse response = mvcResult.getResponse();
+        assertEquals(HttpStatus.OK.value(), response.getStatus());
+        assertEquals(response.getContentAsString(), objectMapper.writeValueAsString(newUser));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldUpdateUser() throws Exception {
+        UserDto newUser = new UserDto("Benny", "interesting kid");
+        ResponseEntity<String> returnedResponse = new ResponseEntity<>("USER UPDATED SUCCESSFULLY", HttpStatus.OK);
+
+        when(userService.updateUser(any(), any())).thenReturn(returnedResponse);
+
+        String createUrl = "/user/1";
+        MvcResult mvcResult = mockMvc.perform(put(createUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(newUser)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("4"));
+                .andReturn();
+
+        MockHttpServletResponse response = mvcResult.getResponse();
+        assertEquals(HttpStatus.OK.value(), response.getStatus());
+        assertEquals(response.getContentAsString(), "USER UPDATED SUCCESSFULLY");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldDeleteUser() throws Exception {
+        UserDto newUser = new UserDto("Benny", "interesting kid");
+        ResponseEntity<String> returnedResponse = new ResponseEntity<>("ID ASSIGNED TO THE USER: 4", HttpStatus.CREATED);
+
+        when(userService.createUser(any())).thenReturn(returnedResponse);
+
+        String createUrl = "/user/";
+        MvcResult mvcResult = mockMvc.perform(post(createUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(newUser)))
+                .andReturn();
+
+        MockHttpServletResponse response = mvcResult.getResponse();
+        assertEquals(HttpStatus.CREATED.value(), response.getStatus());
+        assertEquals(response.getContentAsString(), "ID ASSIGNED TO THE USER: 4");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldCreateNewUser() throws Exception {
+        ResponseEntity<String> returnedResponse = new ResponseEntity<>("USER DELETED SUCCESSFULLY", HttpStatus.ACCEPTED);
+
+        when(userService.deleteUser(any())).thenReturn(returnedResponse);
+
+        String createUrl = "/user/1";
+        MvcResult mvcResult = mockMvc.perform(delete(createUrl))
+                .andExpect(status().isAccepted())
+                .andReturn();
+
+        MockHttpServletResponse response = mvcResult.getResponse();
+        assertEquals(HttpStatus.ACCEPTED.value(), response.getStatus());
+        assertEquals(response.getContentAsString(), "USER DELETED SUCCESSFULLY");
     }
 }

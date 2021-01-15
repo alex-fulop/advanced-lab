@@ -6,9 +6,6 @@ import lombok.*;
 
 @Getter
 @Setter
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
 @ApiModel("User - the core object of the API ")
 public class UserDto {
     @ApiModelProperty("The unique id of the user")
@@ -17,4 +14,12 @@ public class UserDto {
     private String name;
     @ApiModelProperty("The description of the user")
     private String bio;
+
+    public UserDto() {
+    }
+
+    public UserDto(String name, String bio) {
+        this.name = name;
+        this.bio = bio;
+    }
 }

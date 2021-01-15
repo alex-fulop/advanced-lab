@@ -15,4 +15,12 @@ public class User {
     private Long id;
     private String name;
     private String bio;
+
+    public User() {
+    }
+
+    public User(String name, String bio) {
+        this.name = name;
+        this.bio = bio;
+    }
 }
